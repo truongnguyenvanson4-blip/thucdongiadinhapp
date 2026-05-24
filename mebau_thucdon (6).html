@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Thực đơn Mẹ Bầu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:0;background:#FFFBF4;font-family:'Nunito',sans-serif}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  ::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect} = React;
+
+const CATEGORIES = ["Động vật","Rau","Cá","Tôm & hải sản","Trái cây","Hạt"];
+const CAT_ICONS = {"Động vật":"🥩","Rau":"🥦","Cá":"🐟","Tôm & hải sản":"🦐","Trái cây":"🍎","Hạt":"🌰"};
+const CAT_COLORS = {"Động vật":"#E8865A","Rau":"#5B9B6E","Cá":"#5A90C0","Tôm & hải sản":"#C46A9A","Trái cây":"#E8A03A","Hạt":"#8B7B5A"};
+const C = {bg:"#FFFBF4",green:"#5B9B6E",greenDk:"#3D7A52",greenLt:"#EAF5EF",card:"#FFFFFF",brown:"#2D2416",muted:"#9B8B7A",border:"#EDE7DE"};
+
+const DEFAULT_INGREDIENTS = [
+  {id:"dv1",category:"Động vật",name:"Thịt heo",available:true},
+  {id:"dv2",category:"Động vật",name:"Thịt bò",available:true},
+  {id:"dv3",category:"Động vật",name:"Xương heo",available:true},
+  {id:"dv4",category:"Động vật",name:"Xương bò",available:true},
+  {id:"dv5",category:"Động vật",name:"Thịt vịt",available:true},
+  {id:"dv6",category:"Động vật",name:"Thịt gà",available:true},
+  {id:"dv7",category:"Động vật",name:"Chim bồ câu",available:true},
+  {id:"dv8",category:"Động vật",name:"Chim cút",available:true},
+  {id:"dv9",category:"Động vật",name:"Trứng gà",available:true},
+  {id:"dv10",category:"Động vật",name:"Trứng vịt",available:true},
+  {id:"dv11",category:"Động vật",name:"Trứng cút",available:true},
+  {id:"r1",category:"Rau",name:"Súp lơ xanh",available:true},
+  {id:"r2",category:"Rau",name:"Rau cải bó xôi",available:true},
+  {id:"r3",category:"Rau",name:"Cải ngọt",available:true},
+  {id:"r4",category:"Rau",name:"Cải be xanh",available:true},
+  {id:"r5",category:"Rau",name:"Cải thìa",available:true},
+  {id:"r6",category:"Rau",name:"Cải thảo",available:true},
+  {id:"r7",category:"Rau",name:"Cà rốt",available:true},
+  {id:"r8",category:"Rau",name:"Bí đỏ",available:true},
+  {id:"r9",category:"Rau",name:"Bí đao",available:true},
+  {id:"r10",category:"Rau",name:"Cà chua",available:true},
+  {id:"r11",category:"Rau",name:"Khoai tây",available:true},
+  {id:"r12",category:"Rau",name:"Khoai lang",available:true},
+  {id:"r13",category:"Rau",name:"Đậu bắp",available:true},
+  {id:"r14",category:"Rau",name:"Măng tây",available:true},
+  {id:"r15",category:"Rau",name:"Đậu hà lan",available:true},
+  {id:"r16",category:"Rau",name:"Đậu cove",available:true},
+  {id:"r17",category:"Rau",name:"Đậu đũa",available:true},
+  {id:"r18",category:"Rau",name:"Rau lang",available:true},
+  {id:"r19",category:"Rau",name:"Rau muống",available:true},
+  {id:"r20",category:"Rau",name:"Dền đỏ",available:true},
+  {id:"r21",category:"Rau",name:"Hành tây",available:true},
+  {id:"r22",category:"Rau",name:"Ngọn bí",available:true},
+  {id:"r23",category:"Rau",name:"Tần ô",available:true},
+  {id:"r24",category:"Rau",name:"Xà lách",available:true},
+  {id:"r25",category:"Rau",name:"Đậu khuôn",available:true},
+  {id:"r26",category:"Rau",name:"Me",available:true},
+  {id:"ca1",category:"Cá",name:"Cá hồi",available:true},
+  {id:"ca2",category:"Cá",name:"Cá nục",available:true},
+  {id:"ca3",category:"Cá",name:"Cá trích",available:true},
+  {id:"ca4",category:"Cá",name:"Cá cơm",available:true},
+  {id:"ca5",category:"Cá",name:"Cá cơm mòm",available:true},
+  {id:"ca6",category:"Cá",name:"Cá liệt",available:true},
+  {id:"ca7",category:"Cá",name:"Cá chuồn",available:true},
+  {id:"ca8",category:"Cá",name:"Cá chim trắng",available:true},
+  {id:"ca9",category:"Cá",name:"Cá bã trầu",available:true},
+  {id:"ca10",category:"Cá",name:"Cá tín",available:true},
+  {id:"ca11",category:"Cá",name:"Cá thác lát",available:true},
+  {id:"ts1",category:"Tôm & hải sản",name:"Tôm tươi các loại",available:true},
+  {id:"tc1",category:"Trái cây",name:"Cam, quýt, bưởi",available:true},
+  {id:"tc2",category:"Trái cây",name:"Chuối chín",available:true},
+  {id:"tc3",category:"Trái cây",name:"Táo",available:true},
+  {id:"tc4",category:"Trái cây",name:"Bơ",available:true},
+  {id:"tc5",category:"Trái cây",name:"Nho",available:true},
+  {id:"tc6",category:"Trái cây",name:"Lựu",available:true},
+  {id:"tc7",category:"Trái cây",name:"Kiwi",available:true},
+  {id:"tc8",category:"Trái cây",name:"Dâu tây",available:true},
+  {id:"tc9",category:"Trái cây",name:"Việt quất",available:true},
+  {id:"tc10",category:"Trái cây",name:"Thanh long",available:true},
+  {id:"tc11",category:"Trái cây",name:"Lê",available:true},
+  {id:"tc12",category:"Trái cây",name:"Ổi",available:true},
+  {id:"tc13",category:"Trái cây",name:"Vú sữa",available:true},
+  {id:"tc14",category:"Trái cây",name:"Dưa lưới",available:true},
+  {id:"tc15",category:"Trái cây",name:"Mãng cầu",available:true},
+  {id:"tc16",category:"Trái cây",name:"Mãng cầu xiêm",available:true},
+  {id:"h1",category:"Hạt",name:"Hạt óc chó",available:true},
+  {id:"h2",category:"Hạt",name:"Hạt hạnh nhân",available:true},
+  {id:"h3",category:"Hạt",name:"Hạt macca",available:true},
+  {id:"h4",category:"Hạt",name:"Hạt điều",available:true},
+  {id:"h5",category:"Hạt",name:"Hạt hướng dương & bí",available:true},
+  {id:"h6",category:"Hạt",name:"Đậu xanh",available:true},
+  {id:"h7",category:"Hạt",name:"Đậu đỏ",available:true},
+  {id:"h8",category:"Hạt",name:"Đậu đen",available:true},
+  {id:"h9",category:"Hạt",name:"Đậu ngự",available:true},
+  {id:"h10",category:"Hạt",name:"Đậu nành",available:true},
+];
+
+const DEFAULT_DISHES = [
+  "Cơm thịt heo kho tiêu","Canh rau cải bó xôi thịt băm","Cá hồi áp chảo",
+  "Canh bí đỏ tôm","Cháo gà rau củ","Thịt bò xào cà rốt súp lơ",
+  "Trứng chiên cà chua","Canh bí đao xương heo","Cơm cá nục kho gừng",
+  "Canh cải thảo tôm","Gà hấp gừng hành","Cá hồi sốt cà chua",
+  "Cháo đậu xanh","Canh cà rốt thịt băm","Tôm luộc chấm muối tiêu",
+  "Rau muống xào tỏi","Đậu khuôn chiên sốt cà chua","Gà rang sả",
+  "Canh cải ngọt thịt băm","Chim bồ câu hầm","Trứng cút kho",
+  "Cá thác lát chiên","Canh đậu đũa thịt","Bí đỏ hầm xương bò",
+  "Canh xương bò rau củ","Cơm cá trích kho","Cháo trứng rau",
+  "Súp bí đỏ","Thịt heo luộc","Cơm chiên trứng rau",
+  "Thịt gà xào hành tây","Canh khoai tây hầm","Cá chim trắng kho",
+];
+
+// localStorage thay window.storage
+const db = {
+  save: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  load: (k) => { try { const r=localStorage.getItem(k); return r?JSON.parse(r):null; } catch { return null; } }
+};
+
+// ─── Day Card ────────────────────────────────────────────────────────────────
+function DayCard({day}) {
+  const [open,setOpen] = useState(true);
+  const meals = [
+    {key:"breakfast",icon:"🌅",label:"Sáng",bg:"#FFF3EA",accent:"#F5A67D"},
+    {key:"lunch",icon:"☀️",label:"Trưa",bg:"#EAF5EF",accent:"#5B9B6E"},
+    {key:"dinner",icon:"🌙",label:"Tối",bg:"#F0EDF8",accent:"#7B6BAD"},
+  ];
+  return (
+    <div style={{background:C.card,borderRadius:20,padding:16,marginBottom:10,boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+      <button onClick={()=>setOpen(!open)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:36,height:36,borderRadius:12,background:C.greenLt,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,color:C.greenDk}}>{day.day}</div>
+          <span style={{fontWeight:800,fontSize:15,color:C.brown}}>Ngày {day.day}</span>
+        </div>
+        <span style={{color:C.muted,fontSize:14}}>{open?"▲":"▼"}</span>
+      </button>
+      {open && (
+        <div style={{marginTop:12}}>
+          {meals.map(m=>(
+            <div key={m.key} style={{display:"flex",gap:10,marginBottom:8,background:m.bg,borderRadius:12,padding:"8px 12px",borderLeft:`3px solid ${m.accent}`}}>
+              <span style={{fontSize:16,flexShrink:0}}>{m.icon}</span>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:2,textTransform:"uppercase",letterSpacing:0.5}}>{m.label}</div>
+                <div style={{fontSize:14,fontWeight:700,color:C.brown}}>{day[m.key] || "—"}</div>
+              </div>
+            </div>
+          ))}
+          {day.note && (
+            <div style={{background:"#FFFBEA",borderRadius:12,padding:"9px 12px",marginTop:4,borderLeft:"3px solid #E8C55A",display:"flex",gap:8,alignItems:"flex-start"}}>
+              <span style={{fontSize:14,flexShrink:0}}>💡</span>
+              <div style={{fontSize:13,color:"#6B5B2A",fontWeight:500,lineHeight:1.5}}>{day.note}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Menu Tab ────────────────────────────────────────────────────────────────
+function MenuTab({plan,loading,numDays,setNumDays,generatePlan,history,geminiKey,setGeminiKey,showKey,setShowKey}) {
+  const [showShop,setShowShop] = useState(false);
+  const [checkedItems,setCheckedItems] = useState({});
+  const toggleCheck = (cat,item) => {
+    const k=`${cat}__${item}`;
+    setCheckedItems(p=>({...p,[k]:!p[k]}));
+  };
+  return (
+    <div>
+      <div style={{background:C.card,borderRadius:24,padding:20,marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.08)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+          <span style={{fontSize:18}}>📅</span>
+          <span style={{fontWeight:800,fontSize:16,color:C.brown}}>{plan?"Tạo đợt tiếp theo":"Bắt đầu lên thực đơn"}</span>
+        </div>
+
+        {/* API Key input */}
+        <div style={{marginBottom:14,background:"#F5F0EA",borderRadius:14,padding:"10px 12px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:12,fontWeight:700,color:C.muted}}>🔑 Groq API Key</span>
+            <a href="https://console.groq.com/keys" target="_blank" style={{fontSize:11,color:C.green,fontWeight:700,textDecoration:"none"}}>Lấy key miễn phí →</a>
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <input
+              type={showKey?"text":"password"}
+              value={geminiKey}
+              onChange={e=>setGeminiKey(e.target.value)}
+              placeholder="Dán Groq API Key vào đây..."
+              style={{flex:1,border:`2px solid ${geminiKey?C.green:C.border}`,borderRadius:10,padding:"8px 10px",fontFamily:"inherit",fontSize:13,outline:"none",color:C.brown,background:"white",minWidth:0}}
+            />
+            <button onClick={()=>setShowKey(!showKey)} style={{background:"white",border:`2px solid ${C.border}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:14,flexShrink:0}}>{showKey?"🙈":"👁️"}</button>
+          </div>
+          {geminiKey
+            ? <div style={{fontSize:11,color:C.green,marginTop:4,fontWeight:600}}>✓ Đã có key — sẵn sàng tạo thực đơn!</div>
+            : <div style={{fontSize:11,color:C.muted,marginTop:4}}>Miễn phí 14,400 lần/ngày · Không cần thẻ ngân hàng</div>
+          }
+        </div>
+
+        <div style={{display:"flex",gap:8,marginBottom:14}}>
+          {[3,4,7].map(n=>(
+            <button key={n} onClick={()=>setNumDays(n)} style={{flex:1,border:`2px solid ${numDays===n?C.green:C.border}`,background:numDays===n?C.greenLt:C.card,color:numDays===n?C.greenDk:C.muted,borderRadius:14,padding:"10px 4px",fontFamily:"inherit",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+              {n} ngày
+            </button>
+          ))}
+        </div>
+        <button onClick={generatePlan} disabled={loading} style={{width:"100%",background:loading?"#B0C4B8":`linear-gradient(135deg,${C.green},${C.greenDk})`,color:"white",border:"none",borderRadius:16,padding:"14px",fontFamily:"inherit",fontWeight:800,fontSize:15,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          {loading
+            ? <><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⏳</span> Đang tạo thực đơn...</>
+            : <>✨ {plan?"Tạo thực đơn tiếp theo":"Tạo thực đơn ngay"}</>
+          }
+        </button>
+        {history.length>0 && (
+          <div style={{marginTop:10,fontSize:12,color:C.muted,textAlign:"center"}}>
+            Đã tạo {history.length} đợt · Tự động tránh lặp món ✓
+          </div>
+        )}
+      </div>
+
+      {plan && (
+        <>
+          <div style={{fontSize:13,color:C.muted,marginBottom:10,textAlign:"center",fontWeight:600}}>
+            📋 Thực đơn {plan.days?.length} ngày
+          </div>
+          {plan.days?.map(day=><DayCard key={day.day} day={day}/>)}
+          <div style={{background:C.card,borderRadius:24,padding:20,marginTop:4,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:12}}>
+            <button onClick={()=>setShowShop(!showShop)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+              <span style={{fontWeight:800,fontSize:15,color:C.brown}}>🛒 Danh sách đi chợ</span>
+              <span style={{color:C.green,fontWeight:700,fontSize:13}}>{showShop?"Thu gọn ▲":"Xem ▼"}</span>
+            </button>
+            {showShop && plan.shopping_list && (
+              <div style={{marginTop:14}}>
+                {Object.entries(plan.shopping_list).map(([cat,items])=>
+                  Array.isArray(items)&&items.length>0&&(
+                    <div key={cat} style={{marginBottom:14}}>
+                      <div style={{fontWeight:700,fontSize:13,color:C.green,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{width:6,height:6,borderRadius:3,background:C.green}}/>{cat}
+                      </div>
+                      {items.map((item,i)=>{
+                        const k=`${cat}__${item}`;
+                        const checked=!!checkedItems[k];
+                        return (
+                          <div key={i} onClick={()=>toggleCheck(cat,item)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 4px",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}>
+                            <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${checked?C.green:C.border}`,background:checked?C.green:"white",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+                              {checked&&<span style={{color:"white",fontSize:13}}>✓</span>}
+                            </div>
+                            <span style={{fontSize:14,color:C.brown,fontWeight:600,textDecoration:checked?"line-through":"none",opacity:checked?0.5:1}}>{item}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {!plan&&!loading&&(
+        <div style={{textAlign:"center",padding:"48px 20px",color:C.muted}}>
+          <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+          <div style={{fontWeight:800,fontSize:17,color:C.brown,marginBottom:8}}>Chưa có thực đơn</div>
+          <div style={{fontSize:14,lineHeight:1.6}}>Nhập API Key → Nhấn "Tạo thực đơn ngay"<br/>App sẽ tự chọn món đa dạng, đủ dưỡng chất 💚</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Ingredients Tab ─────────────────────────────────────────────────────────
+function IngredientsTab({ingredients,allIng,catFilter,setCatFilter,toggleIng,markAllAvailable,newIngName,setNewIngName,newIngCat,setNewIngCat,addIngredient}) {
+  const cats = ["Tất cả",...CATEGORIES];
+  const avail = (catFilter==="Tất cả"?allIng:allIng.filter(i=>i.category===catFilter)).filter(i=>i.available).length;
+  const total = catFilter==="Tất cả"?allIng.length:allIng.filter(i=>i.category===catFilter).length;
+  return (
+    <div>
+      <div style={{background:C.card,borderRadius:24,padding:16,marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.08)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:15,color:C.brown}}>Nguyên liệu có sẵn</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:2}}>✓ {avail} / {total} mục</div>
+          </div>
+          <button onClick={markAllAvailable} style={{background:C.greenLt,color:C.greenDk,border:"none",borderRadius:20,padding:"8px 14px",fontFamily:"inherit",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+            ✓ Đã đi chợ xong
+          </button>
+        </div>
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4}}>
+          {cats.map(c=>(
+            <button key={c} onClick={()=>setCatFilter(c)} style={{flexShrink:0,background:catFilter===c?C.green:"#F5F0EA",color:catFilter===c?"white":C.muted,border:"none",borderRadius:20,padding:"6px 13px",fontFamily:"inherit",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+              {c==="Tất cả"?"Tất cả":`${CAT_ICONS[c]} ${c}`}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{background:C.card,borderRadius:24,padding:"4px 16px",marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+        {ingredients.map((ing,i)=>(
+          <div key={ing.id} onClick={()=>toggleIng(ing.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:i<ingredients.length-1?`1px solid ${C.border}`:"none",cursor:"pointer"}}>
+            <div style={{width:26,height:26,borderRadius:8,flexShrink:0,background:ing.available?C.green:C.border,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+              {ing.available&&<span style={{color:"white",fontSize:14,lineHeight:1}}>✓</span>}
+            </div>
+            <div style={{flex:1,opacity:ing.available?1:0.45}}>
+              <div style={{fontSize:14,fontWeight:700,color:C.brown,textDecoration:ing.available?"none":"line-through"}}>{ing.name}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:1}}>{ing.category}</div>
+            </div>
+            <div style={{width:8,height:8,borderRadius:4,background:CAT_COLORS[ing.category]||"#ccc",flexShrink:0}}/>
+          </div>
+        ))}
+      </div>
+      <div style={{background:C.card,borderRadius:20,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:12}}>
+        <div style={{fontWeight:700,fontSize:14,color:C.brown,marginBottom:10}}>➕ Thêm nguyên liệu mới</div>
+        <select value={newIngCat} onChange={e=>setNewIngCat(e.target.value)} style={{width:"100%",border:`2px solid ${C.border}`,borderRadius:12,padding:"10px 12px",fontFamily:"inherit",fontSize:14,marginBottom:8,background:"white",color:C.brown,outline:"none"}}>
+          {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+        </select>
+        <div style={{display:"flex",gap:8}}>
+          <input value={newIngName} onChange={e=>setNewIngName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addIngredient()} placeholder="Tên nguyên liệu..." style={{flex:1,border:`2px solid ${C.border}`,borderRadius:12,padding:"10px 12px",fontFamily:"inherit",fontSize:14,outline:"none",color:C.brown}}/>
+          <button onClick={addIngredient} style={{background:C.green,color:"white",border:"none",borderRadius:12,padding:"10px 18px",fontFamily:"inherit",fontWeight:700,fontSize:14,cursor:"pointer"}}>Thêm</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Dishes Tab ───────────────────────────────────────────────────────────────
+function DishesTab({dishes,newDish,setNewDish,addDish,removeDish}) {
+  return (
+    <div>
+      <div style={{background:C.card,borderRadius:24,padding:16,marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.08)"}}>
+        <div style={{fontWeight:800,fontSize:15,color:C.brown,marginBottom:4}}>🍜 Kho món ăn</div>
+        <div style={{fontSize:13,color:C.muted,marginBottom:14}}>{dishes.length} món · AI chọn từ danh sách này</div>
+        <div style={{display:"flex",gap:8}}>
+          <input value={newDish} onChange={e=>setNewDish(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addDish()} placeholder="Thêm món mới..." style={{flex:1,border:`2px solid ${C.border}`,borderRadius:12,padding:"10px 12px",fontFamily:"inherit",fontSize:14,outline:"none",color:C.brown}}/>
+          <button onClick={addDish} style={{background:C.green,color:"white",border:"none",borderRadius:12,padding:"10px 18px",fontFamily:"inherit",fontWeight:700,fontSize:14,cursor:"pointer"}}>Thêm</button>
+        </div>
+      </div>
+      <div style={{background:C.card,borderRadius:24,padding:"4px 16px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+        {dishes.map((dish,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:i<dishes.length-1?`1px solid ${C.border}`:"none"}}>
+            <div style={{width:28,height:28,borderRadius:8,background:"#F5F0EA",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:C.muted,flexShrink:0}}>{i+1}</div>
+            <div style={{flex:1,fontSize:14,fontWeight:600,color:C.brown}}>{dish}</div>
+            <button onClick={()=>removeDish(i)} style={{background:"#FEF0F0",border:"none",borderRadius:8,width:30,height:30,cursor:"pointer",fontSize:16,color:"#E85A5A",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,setTab] = useState("menu");
+  const [ingredients,setIngredients] = useState(DEFAULT_INGREDIENTS);
+  const [dishes,setDishes] = useState(DEFAULT_DISHES);
+  const [plan,setPlan] = useState(null);
+  const [history,setHistory] = useState([]);
+  const [loading,setLoading] = useState(false);
+  const [numDays,setNumDays] = useState(3);
+  const [catFilter,setCatFilter] = useState("Tất cả");
+  const [newDish,setNewDish] = useState("");
+  const [newIngName,setNewIngName] = useState("");
+  const [newIngCat,setNewIngCat] = useState("Rau");
+  const [geminiKey,setGeminiKey] = useState("");
+  const [showKey,setShowKey] = useState(false);
+
+  useEffect(()=>{
+    // Load từ localStorage (đồng bộ)
+    const i=db.load("mebau_ing_v2"); if(i)setIngredients(i);
+    const d=db.load("mebau_dishes_v2"); if(d)setDishes(d);
+    const p=db.load("mebau_plan_v2"); if(p)setPlan(p);
+    const h=db.load("mebau_hist_v2"); if(h)setHistory(h);
+    const k=db.load("mebau_gkey"); if(k)setGeminiKey(k);
+  },[]);
+
+  const saveKey = (v) => { setGeminiKey(v); db.save("mebau_gkey",v); };
+  const updateIng = (upd)=>{ setIngredients(upd); db.save("mebau_ing_v2",upd); };
+  const updateDishes = (upd)=>{ setDishes(upd); db.save("mebau_dishes_v2",upd); };
+
+  const generatePlan = async()=>{
+    if(!geminiKey.trim()){ alert("Vui lòng nhập Groq API Key trước!\n\nLấy miễn phí tại: console.groq.com/keys"); return; }
+    setLoading(true);
+    try {
+      const available = ingredients.filter(i=>i.available).map(i=>`${i.name}(${i.category})`).join(", ");
+      const recentMeals = history.slice(-2).flatMap(p=>p.days||[]).flatMap(d=>[d.breakfast,d.lunch,d.dinner]).filter(Boolean).join(", ");
+
+      const prompt = `Lên thực đơn ${numDays} ngày cho mẹ bầu 3 tháng đầu.
+
+Nguyên liệu có sẵn: ${available}
+Danh sách món ăn: ${dishes.join(", ")}
+Không lặp lại các món: ${recentMeals||"Chưa có"}
+
+Yêu cầu: chọn từ danh sách món ăn, ưu tiên nguyên liệu có sẵn, đa dạng protein (cá/thịt/trứng/đậu), ghi chú dinh dưỡng ngắn mỗi ngày.
+
+Trả về JSON hợp lệ (chỉ JSON, không markdown, không backtick, không giải thích):
+{"days":[{"day":1,"breakfast":"tên món","lunch":"tên món","dinner":"tên món","note":"ghi chú dinh dưỡng ngắn"}],"shopping_list":{"Thịt & cá":["nguyên liệu"],"Rau củ":["nguyên liệu"],"Hạt & đậu":["nguyên liệu"],"Khác":["nguyên liệu"]}}`;
+
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+geminiKey.trim()},
+        body:JSON.stringify({
+          model:"llama-3.3-70b-versatile",
+          max_tokens:2000,
+          temperature:0.7,
+          messages:[
+            {role:"system",content:"Bạn là chuyên gia dinh dưỡng cho mẹ bầu 3 tháng đầu. Chỉ trả về JSON hợp lệ, không markdown, không backtick, không giải thích thêm."},
+            {role:"user",content:prompt}
+          ]
+        })
+      });
+      const data = await res.json();
+      if(data.error) throw new Error(data.error.message||"Lỗi Groq API");
+      const text = data.choices?.[0]?.message?.content||"";
+      const cleaned = text.replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(cleaned);
+      const newPlan = {...parsed, generatedAt:new Date().toISOString(), numDays};
+      const newHist = [...history, newPlan].slice(-10);
+      setHistory(newHist); setPlan(newPlan);
+      db.save("mebau_plan_v2", newPlan);
+      db.save("mebau_hist_v2", newHist);
+      setTab("menu");
+    } catch(e){
+      console.error(e);
+      alert("Có lỗi: " + e.message + "\n\nKiểm tra lại API Key và kết nối mạng.");
+    }
+    setLoading(false);
+  };
+
+  const filteredIng = catFilter==="Tất cả"?ingredients:ingredients.filter(i=>i.category===catFilter);
+  const availCount = ingredients.filter(i=>i.available).length;
+  const tabs=[{id:"menu",icon:"🍽️",label:"Thực đơn"},{id:"ingredients",icon:"🥦",label:"Nguyên liệu"},{id:"dishes",icon:"🍜",label:"Món ăn"}];
+
+  return (
+    <div style={{background:C.bg,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Nunito',sans-serif",paddingBottom:90}}>
+      {/* Header */}
+      <div style={{background:`linear-gradient(160deg,${C.green} 0%,${C.greenDk} 100%)`,padding:"24px 20px 58px",borderRadius:"0 0 36px 36px"}}>
+        <div style={{color:"rgba(255,255,255,0.75)",fontSize:11,fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>
+          🤰 Thực đơn mẹ bầu
+        </div>
+        <div style={{color:"white",fontSize:26,fontWeight:900,lineHeight:1.2}}>3 tháng đầu thai kỳ</div>
+        <div style={{color:"rgba(255,255,255,0.65)",fontSize:13,marginTop:5}}>
+          {availCount}/{ingredients.length} nguyên liệu có sẵn · {dishes.length} món ăn
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div style={{padding:"0 16px",marginTop:-38}}>
+        {tab==="menu" && <MenuTab plan={plan} loading={loading} numDays={numDays} setNumDays={setNumDays} generatePlan={generatePlan} history={history} geminiKey={geminiKey} setGeminiKey={saveKey} showKey={showKey} setShowKey={setShowKey}/>}
+        {tab==="ingredients" && <IngredientsTab ingredients={filteredIng} allIng={ingredients} catFilter={catFilter} setCatFilter={setCatFilter} toggleIng={(id)=>updateIng(ingredients.map(i=>i.id===id?{...i,available:!i.available}:i))} markAllAvailable={()=>updateIng(ingredients.map(i=>({...i,available:true})))} newIngName={newIngName} setNewIngName={setNewIngName} newIngCat={newIngCat} setNewIngCat={setNewIngCat} addIngredient={()=>{if(!newIngName.trim())return;updateIng([...ingredients,{id:`c${Date.now()}`,category:newIngCat,name:newIngName.trim(),available:true}]);setNewIngName("");}}/>}
+        {tab==="dishes" && <DishesTab dishes={dishes} newDish={newDish} setNewDish={setNewDish} addDish={()=>{if(!newDish.trim())return;updateDishes([...dishes,newDish.trim()]);setNewDish("");}} removeDish={(i)=>updateDishes(dishes.filter((_,j)=>j!==i))}/>}
+      </div>
+
+      {/* Bottom Nav */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"white",borderTop:`1px solid ${C.border}`,display:"flex",padding:"8px 0 18px",boxShadow:"0 -4px 20px rgba(0,0,0,0.08)",zIndex:100}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"4px 0",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <span style={{fontSize:22}}>{t.icon}</span>
+            <span style={{fontSize:11,fontWeight:tab===t.id?800:500,color:tab===t.id?C.green:C.muted,fontFamily:"inherit"}}>{t.label}</span>
+            <div style={{width:tab===t.id?24:0,height:3,background:C.green,borderRadius:4,transition:"width 0.2s"}}/>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
