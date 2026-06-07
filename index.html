@@ -22,15 +22,12 @@
 </head>
 <body>
 <div id="root"></div>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<!-- Firebase -->
-<script type="module" id="firebase-init">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
+<!-- Firebase compat (không dùng module, hoạt động tốt với Babel) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  // Khởi tạo Firebase TRƯỚC khi Babel chạy
+  const _fbConfig = {
     apiKey: "AIzaSyCv2YGK7aCxDwcQ-U6e_gRxNvFE71IiEXQ",
     authDomain: "thucdongiadinh-8507e.firebaseapp.com",
     projectId: "thucdongiadinh-8507e",
@@ -38,47 +35,14 @@
     messagingSenderId: "532574167492",
     appId: "1:532574167492:web:54c08bf50d91ef04fe0491"
   };
-
-  const app = initializeApp(firebaseConfig);
-  const firestore = getFirestore(app);
-  const USER_DOC = "shared/family";
-
-  // Expose firebaseDb globally for use in React (text/babel)
-  window.firebaseDb = {
-    _fs: firestore,
-    _listeners: {},
-
-    async save(key, value) {
-      try {
-        await setDoc(doc(firestore, USER_DOC, key), { value: JSON.stringify(value) }, { merge: true });
-      } catch(e) { console.warn("Firebase save error:", e); }
-    },
-
-    async load(key) {
-      try {
-        const snap = await getDoc(doc(firestore, USER_DOC, key));
-        if (snap.exists()) return JSON.parse(snap.data().value);
-      } catch(e) { console.warn("Firebase load error:", e); }
-      return null;
-    },
-
-    listen(key, callback) {
-      if (this._listeners[key]) this._listeners[key]();
-      this._listeners[key] = onSnapshot(doc(firestore, USER_DOC, key), snap => {
-        if (snap.exists()) {
-          try { callback(JSON.parse(snap.data().value)); } catch(e) {}
-        }
-      });
-    },
-
-    unlisten(key) {
-      if (this._listeners[key]) { this._listeners[key](); delete this._listeners[key]; }
-    }
-  };
-
-  window._firebaseReady = true;
-  window.dispatchEvent(new Event("firebase-ready"));
+  if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
+  window._fs = firebase.firestore();
+  window._fsListeners = {};
+  console.log("✅ Firebase initialized");
 </script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef} = React;
 
@@ -87,13 +51,51 @@ const CAT_ICONS = {"Động vật":"🥩","Rau":"🥦","Cá":"🐟","Tôm & hả
 const CAT_COLORS = {"Động vật":"#E8865A","Rau":"#5B9B6E","Cá":"#5A90C0","Tôm & hải sản":"#C46A9A","Trái cây":"#E8A03A","Hạt":"#8B7B5A","Khác":"#9B7EC8"};
 const C = {bg:"#FFFBF4",green:"#5B9B6E",greenDk:"#3D7A52",greenLt:"#EAF5EF",card:"#FFFFFF",brown:"#2D2416",muted:"#9B8B7A",border:"#EDE7DE"};
 
-// ─── Database: Firebase + localStorage fallback ───────────────────────────────
+// ─── Firebase helpers ─────────────────────────────────────────────────────────
+const FS_COL = "shared";
+const FS_DOC = "family";
+
+async function fbSave(key, value) {
+  try {
+    await window._fs.collection(FS_COL).doc(FS_DOC).set(
+      { [key]: JSON.stringify(value) }, { merge: true }
+    );
+  } catch(e) { console.warn("fbSave error:", key, e.message); }
+}
+
+async function fbLoad(key) {
+  try {
+    const snap = await window._fs.collection(FS_COL).doc(FS_DOC).get();
+    if (snap.exists && snap.data()[key] !== undefined) {
+      return JSON.parse(snap.data()[key]);
+    }
+  } catch(e) { console.warn("fbLoad error:", key, e.message); }
+  return null;
+}
+
+function fbListen(key, callback) {
+  if (window._fsListeners[key]) window._fsListeners[key]();
+  window._fsListeners[key] = window._fs.collection(FS_COL).doc(FS_DOC)
+    .onSnapshot(snap => {
+      if (snap.exists && snap.data()[key] !== undefined) {
+        try { callback(JSON.parse(snap.data()[key])); } catch(e) {}
+      }
+    });
+}
+
+function fbUnlisten(key) {
+  if (window._fsListeners[key]) { window._fsListeners[key](); delete window._fsListeners[key]; }
+}
+
+// ─── Database: Firebase + localStorage ───────────────────────────────────────
 const db = {
-  save:(k,v)=>{
-    try{localStorage.setItem(k,JSON.stringify(v));}catch{}
-    if(window.firebaseDb) window.firebaseDb.save(k,v);
+  save: (k, v) => {
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+    fbSave(k, v);
   },
-  load:(k)=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch{return null;}}
+  load: (k) => {
+    try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; }
+  }
 };
 
 const DEFAULT_INGREDIENTS = [
@@ -2118,72 +2120,44 @@ function App() {
   ];
 
   useEffect(()=>{
-    const KEYS = [
-      "mebau_seen_ing_v3","mebau_ing_v3","mebau_ing_v2",
-      "mebau_dishes_v3","mebau_dishes_v2","mebau_plan_v3",
-      "mebau_hist_v3","mebau_gkey","mebau_cooked_v3",
-      "mebau_fav_v3","mebau_recipes_v3","mebau_diary_v3"
-    ];
-
     const LEGACY_DEFAULT = new Set(["Thịt heo kho tiêu","Thịt heo luộc","Thịt heo xào gừng hành","Thịt bò xào cà rốt súp lơ","Thịt bò hầm rau củ","Thịt bò lúc lắc","Gà hấp gừng hành","Gà rang sả","Gà kho gừng","Gà hầm tiêu xanh","Vịt nấu chao","Vịt luộc mắm gừng","Chim bồ câu hầm hạt sen","Chim cút kho","Trứng chiên cà chua","Trứng gà luộc","Trứng cút kho","Trứng hấp thịt băm","Cá hồi áp chảo","Cá hồi sốt cà chua","Cá hồi hấp gừng","Cá nục kho gừng","Cá nục chiên","Cá trích kho","Cá thác lát chiên","Cá chim trắng kho","Cá liệt kho","Tôm luộc","Tôm xào tỏi","Tôm rang muối","Tôm hấp bia","Đậu khuôn chiên sốt cà chua","Đậu khuôn hấp hành gừng","Rau muống xào tỏi","Cải ngọt xào tỏi","Súp lơ xanh luộc","Bầu luộc","Cải thìa xào gừng","Đậu bắp luộc","Măng tây xào tỏi","Cải bó xôi xào tỏi","Khoai lang luộc","Canh rau cải bó xôi thịt băm","Canh bí đỏ tôm","Canh bí đao xương heo","Canh cải thảo tôm","Canh cải ngọt thịt băm","Canh đậu đũa thịt","Canh khoai tây thịt bò","Canh xương bò rau củ","Canh cà rốt thịt băm","Canh rau ngót thịt băm","Canh chua cá","Canh chua tôm","Súp bí đỏ gà","Súp gà rau củ","Bí đỏ hầm xương bò","Canh đậu hũ cải thảo","Canh hành tây thịt bò","Sữa đậu xanh","Sữa đậu nành","Sữa hạt óc chó","Chè đậu đen","Chè đậu đỏ","Chè đậu xanh đường phèn","Hạt điều rang muối","Hạt hướng dương rang","Cháo gà rau củ","Cháo đậu xanh","Cháo trứng rau","Cháo cá hồi"]);
 
-    const applyData = (data)=>{
-      if(data.mebau_seen_ing_v3){ setHasSeenIngredients(true); setTab("menu"); }
-      if(data.mebau_ing_v3) setIngredients(data.mebau_ing_v3);
-      else if(data.mebau_ing_v2) setIngredients(data.mebau_ing_v2);
-      const rawDishes = data.mebau_dishes_v3||data.mebau_dishes_v2||[];
-      const userOnly = rawDishes.filter(d=>!LEGACY_DEFAULT.has(d));
-      setDishes(userOnly);
-      if(data.mebau_plan_v3) setPlan(data.mebau_plan_v3);
-      if(data.mebau_hist_v3) setHistory(data.mebau_hist_v3);
-      if(data.mebau_gkey) setGroqKey(data.mebau_gkey);
-      if(data.mebau_cooked_v3) setCookedDishes(data.mebau_cooked_v3);
-      if(data.mebau_fav_v3) setFavoriteDishes(data.mebau_fav_v3);
-      if(data.mebau_recipes_v3) setDishRecipes(data.mebau_recipes_v3);
-      if(data.mebau_diary_v3) setDiary(data.mebau_diary_v3);
+    const applySnap = (data) => {
+      if(!data) return;
+      if(data["mebau_seen_ing_v3"]){ setHasSeenIngredients(true); setTab("menu"); }
+      if(data["mebau_ing_v3"]) setIngredients(JSON.parse(data["mebau_ing_v3"]));
+      else if(data["mebau_ing_v2"]) setIngredients(JSON.parse(data["mebau_ing_v2"]));
+      const rawStr = data["mebau_dishes_v3"]||data["mebau_dishes_v2"];
+      if(rawStr){ const raw=JSON.parse(rawStr); setDishes(raw.filter(d=>!LEGACY_DEFAULT.has(d))); }
+      if(data["mebau_plan_v3"]) setPlan(JSON.parse(data["mebau_plan_v3"]));
+      if(data["mebau_hist_v3"]) setHistory(JSON.parse(data["mebau_hist_v3"]));
+      if(data["mebau_gkey"]) setGroqKey(JSON.parse(data["mebau_gkey"]));
+      if(data["mebau_cooked_v3"]) setCookedDishes(JSON.parse(data["mebau_cooked_v3"]));
+      if(data["mebau_fav_v3"]) setFavoriteDishes(JSON.parse(data["mebau_fav_v3"]));
+      if(data["mebau_recipes_v3"]) setDishRecipes(JSON.parse(data["mebau_recipes_v3"]));
+      if(data["mebau_diary_v3"]) setDiary(JSON.parse(data["mebau_diary_v3"]));
     };
 
-    // Load từ localStorage trước (instant)
-    const localData = {};
-    KEYS.forEach(k=>{ const v=db.load(k); if(v!==null) localData[k]=v; });
-    applyData(localData);
+    // Bước 1: Load localStorage ngay lập tức
+    const localSnap = {};
+    ["mebau_seen_ing_v3","mebau_ing_v3","mebau_ing_v2","mebau_dishes_v3","mebau_dishes_v2",
+     "mebau_plan_v3","mebau_hist_v3","mebau_gkey","mebau_cooked_v3","mebau_fav_v3",
+     "mebau_recipes_v3","mebau_diary_v3"].forEach(k=>{
+      const v=localStorage.getItem(k); if(v) localSnap[k]=v;
+    });
+    applySnap(localSnap);
 
-    // Load từ Firebase và ghi đè (sau vài giây)
-    const loadFromFirebase = async()=>{
-      if(!window.firebaseDb) return;
-      const fbData = {};
-      await Promise.all(KEYS.map(async k=>{
-        const v = await window.firebaseDb.load(k);
-        if(v!==null){ fbData[k]=v; try{localStorage.setItem(k,JSON.stringify(v));}catch{} }
-      }));
-      applyData(fbData);
+    // Bước 2: Lắng nghe real-time từ Firebase (1 listener duy nhất cho toàn bộ doc)
+    const unsub = window._fs.collection(FS_COL).doc(FS_DOC).onSnapshot(snap=>{
+      if(!snap.exists) return;
+      const data = snap.data();
+      console.log("🔄 Firebase sync received");
+      // Cập nhật localStorage
+      Object.keys(data).forEach(k=>{ try{localStorage.setItem(k,data[k]);}catch{} });
+      applySnap(data);
+    }, err=>console.warn("Firebase listener error:", err.message));
 
-      // Lắng nghe real-time sync cho các key quan trọng
-      const syncKeys = ["mebau_ing_v3","mebau_dishes_v3","mebau_plan_v3","mebau_hist_v3","mebau_diary_v3","mebau_cooked_v3","mebau_fav_v3","mebau_recipes_v3"];
-      syncKeys.forEach(k=>{
-        window.firebaseDb.listen(k, val=>{
-          try{localStorage.setItem(k,JSON.stringify(val));}catch{}
-          if(k==="mebau_ing_v3") setIngredients(val);
-          else if(k==="mebau_dishes_v3") setDishes(val.filter(d=>!LEGACY_DEFAULT.has(d)));
-          else if(k==="mebau_plan_v3") setPlan(val);
-          else if(k==="mebau_hist_v3") setHistory(val);
-          else if(k==="mebau_diary_v3") setDiary(val);
-          else if(k==="mebau_cooked_v3") setCookedDishes(val);
-          else if(k==="mebau_fav_v3") setFavoriteDishes(val);
-          else if(k==="mebau_recipes_v3") setDishRecipes(val);
-        });
-      });
-    };
-
-    // Chờ Firebase sẵn sàng
-    if(window._firebaseReady) loadFromFirebase();
-    else window.addEventListener("firebase-ready", loadFromFirebase, {once:true});
-
-    return ()=>{
-      if(window.firebaseDb){
-        ["mebau_ing_v3","mebau_dishes_v3","mebau_plan_v3","mebau_hist_v3","mebau_diary_v3","mebau_cooked_v3","mebau_fav_v3","mebau_recipes_v3"].forEach(k=>window.firebaseDb.unlisten(k));
-      }
-    };
+    return ()=> unsub();
   },[]);
 
   const saveKey=(v)=>{ setGroqKey(v); db.save("mebau_gkey",v); };
