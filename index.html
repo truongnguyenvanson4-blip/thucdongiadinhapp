@@ -13,6 +13,9 @@
   @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   ::-webkit-scrollbar{display:none}
+  .cat-scroll::-webkit-scrollbar{display:block;height:3px}
+  .cat-scroll::-webkit-scrollbar-track{background:transparent}
+  .cat-scroll::-webkit-scrollbar-thumb{background:#C8E0D0;border-radius:4px}
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s ease}
   .modal-sheet{background:white;width:100%;max-width:430px;border-radius:28px 28px 0 0;padding:24px 20px 48px;max-height:82vh;overflow-y:auto;animation:slideUp 0.3s ease}
 </style>
@@ -25,9 +28,9 @@
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef} = React;
 
-const CATEGORIES = ["Động vật","Rau","Cá","Tôm & hải sản","Trái cây","Hạt"];
-const CAT_ICONS = {"Động vật":"🥩","Rau":"🥦","Cá":"🐟","Tôm & hải sản":"🦐","Trái cây":"🍎","Hạt":"🌰"};
-const CAT_COLORS = {"Động vật":"#E8865A","Rau":"#5B9B6E","Cá":"#5A90C0","Tôm & hải sản":"#C46A9A","Trái cây":"#E8A03A","Hạt":"#8B7B5A"};
+const CATEGORIES = ["Động vật","Rau","Cá","Tôm & hải sản","Trái cây","Hạt","Khác"];
+const CAT_ICONS = {"Động vật":"🥩","Rau":"🥦","Cá":"🐟","Tôm & hải sản":"🦐","Trái cây":"🍎","Hạt":"🌰","Khác":"🫙"};
+const CAT_COLORS = {"Động vật":"#E8865A","Rau":"#5B9B6E","Cá":"#5A90C0","Tôm & hải sản":"#C46A9A","Trái cây":"#E8A03A","Hạt":"#8B7B5A","Khác":"#9B7EC8"};
 const C = {bg:"#FFFBF4",green:"#5B9B6E",greenDk:"#3D7A52",greenLt:"#EAF5EF",card:"#FFFFFF",brown:"#2D2416",muted:"#9B8B7A",border:"#EDE7DE"};
 
 const db = {
@@ -71,7 +74,7 @@ const DEFAULT_INGREDIENTS = [
   {id:"r22",category:"Rau",name:"Ngọn bí",available:true},
   {id:"r23",category:"Rau",name:"Tần ô",available:true},
   {id:"r24",category:"Rau",name:"Xà lách",available:true},
-  {id:"r25",category:"Rau",name:"Đậu khuôn",available:true},
+  {id:"r25",category:"Khác",name:"Đậu khuôn (tàu hũ)",available:true},
   {id:"r26",category:"Rau",name:"Me",available:true},
   {id:"ca1",category:"Cá",name:"Cá hồi",available:true},
   {id:"ca2",category:"Cá",name:"Cá nục",available:true},
@@ -111,39 +114,14 @@ const DEFAULT_INGREDIENTS = [
   {id:"h8",category:"Hạt",name:"Đậu đen",available:true},
   {id:"h9",category:"Hạt",name:"Đậu ngự",available:true},
   {id:"h10",category:"Hạt",name:"Đậu nành",available:true},
+  {id:"kh1",category:"Khác",name:"Đậu khuôn chiên",available:true},
+  {id:"kh2",category:"Khác",name:"Nấm các loại",available:true},
+  {id:"kh3",category:"Khác",name:"Miến",available:true},
+  {id:"kh4",category:"Khác",name:"Bún tươi",available:true},
 ];
 
-const DEFAULT_DISHES = [
-  // Món mặn
-  "Thịt heo kho tiêu","Thịt heo luộc","Thịt heo xào gừng hành",
-  "Thịt bò xào cà rốt súp lơ","Thịt bò hầm rau củ","Thịt bò lúc lắc",
-  "Gà hấp gừng hành","Gà rang sả","Gà kho gừng","Gà hầm tiêu xanh",
-  "Vịt nấu chao","Vịt luộc mắm gừng",
-  "Chim bồ câu hầm hạt sen","Chim cút kho",
-  "Trứng chiên cà chua","Trứng gà luộc","Trứng cút kho","Trứng hấp thịt băm",
-  "Cá hồi áp chảo","Cá hồi sốt cà chua","Cá hồi hấp gừng",
-  "Cá nục kho gừng","Cá nục chiên","Cá trích kho",
-  "Cá thác lát chiên","Cá chim trắng kho","Cá liệt kho",
-  "Tôm luộc","Tôm xào tỏi","Tôm rang muối","Tôm hấp bia",
-  "Đậu khuôn chiên sốt cà chua","Đậu khuôn hấp hành gừng",
-  // Món rau
-  "Rau muống xào tỏi","Cải ngọt xào tỏi","Súp lơ xanh luộc",
-  "Bầu luộc","Cải thìa xào gừng","Đậu bắp luộc",
-  "Măng tây xào tỏi","Cải bó xôi xào tỏi","Khoai lang luộc",
-  // Canh
-  "Canh rau cải bó xôi thịt băm","Canh bí đỏ tôm","Canh bí đao xương heo",
-  "Canh cải thảo tôm","Canh cải ngọt thịt băm","Canh đậu đũa thịt",
-  "Canh khoai tây thịt bò","Canh xương bò rau củ","Canh cà rốt thịt băm",
-  "Canh rau ngót thịt băm","Canh chua cá","Canh chua tôm",
-  "Súp bí đỏ gà","Súp gà rau củ","Bí đỏ hầm xương bò",
-  "Canh đậu hũ cải thảo","Canh hành tây thịt bò",
-  // Hạt & đậu
-  "Sữa đậu xanh","Sữa đậu nành","Sữa hạt óc chó",
-  "Chè đậu đen","Chè đậu đỏ","Chè đậu xanh đường phèn",
-  "Hạt điều rang muối","Hạt hướng dương rang",
-  // Cháo
-  "Cháo gà rau củ","Cháo đậu xanh","Cháo trứng rau","Cháo cá hồi",
-];
+const DEFAULT_DISHES = [];
+// Kho món ăn rỗng — chỉ lưu món do user thêm hoặc AI gợi ý được chấp nhận
 
 // ─── Dish emoji helper ────────────────────────────────────────────────────────
 function getDishEmoji(dish) {
@@ -729,16 +707,161 @@ function DayCard({day, dishes, cookedDishes, onReplaceDish, onDishClick, onAddDi
   );
 }
 
+
+
+// ─── Dish Warning Modal (kho món ăn chưa đủ) ─────────────────────────────────
+function DishWarningModal({warning, onGoAdd, onContinueAnyway, onClose}) {
+  const {missing} = warning;
+  return (
+    <div className="modal-overlay" onClick={e=>e.target.classList.contains("modal-overlay")&&onClose()}>
+      <div className="modal-sheet">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+          <div>
+            <div style={{fontWeight:900,fontSize:17,color:C.brown}}>⚠️ Kho món ăn chưa đủ</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:2}}>Thực đơn có thể không đa dạng</div>
+          </div>
+          <button onClick={onClose} style={{background:"#F5F0EA",border:"none",borderRadius:12,width:36,height:36,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",color:C.muted}}>×</button>
+        </div>
+
+        <div style={{background:"#FFF8E1",borderRadius:16,padding:"14px 16px",marginBottom:16,border:"2px solid #F5D98A"}}>
+          <div style={{fontWeight:800,fontSize:13,color:"#B07A10",marginBottom:10}}>📋 Kho món ăn của bạn đang:</div>
+          {missing.map((m,i)=>(
+            <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
+              <span style={{fontSize:14,flexShrink:0}}>❌</span>
+              <span style={{fontSize:13,color:"#8B6B2A",fontWeight:600,lineHeight:1.4}}>{m}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{background:"#F0EDF8",borderRadius:14,padding:"12px 14px",marginBottom:16,fontSize:13,color:"#5B4E8D",fontWeight:600,lineHeight:1.6}}>
+          💡 Vào tab <b>Món ăn</b> và nhấn <b>✨ AI gợi thêm món</b> để bổ sung món từ nguyên liệu bạn có sẵn trước khi tạo thực đơn.
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <button onClick={onGoAdd}
+            style={{width:"100%",background:`linear-gradient(135deg,#7B6BAD,#5B4E8D)`,color:"white",border:"none",borderRadius:14,padding:"13px",fontFamily:"inherit",fontWeight:800,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            🍜 Vào tab Món ăn để thêm món
+          </button>
+          <button onClick={onContinueAnyway}
+            style={{width:"100%",background:"#F5F0EA",color:C.muted,border:"none",borderRadius:14,padding:"11px",fontFamily:"inherit",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+            Tiếp tục tạo thực đơn với kho hiện tại
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Date Picker Modal (chọn ngày bắt đầu thực đơn) ─────────────────────────
+function DatePickerModal({numDays, onConfirm, onClose}) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [selected, setSelected] = useState(null); // dateKey string
+
+  const cells = getCalendarDays(year, month);
+  const tk = todayKey();
+
+  const prevMonth = ()=>{ if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); };
+  const nextMonth = ()=>{ if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); };
+
+  const fmtLabel = (dk)=>{
+    if(!dk) return "";
+    const [y,m,d]=dk.split("-").map(Number);
+    return `${d} ${MONTHS_VI[m-1]}, ${y}`;
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target.classList.contains("modal-overlay")&&onClose()}>
+      <div className="modal-sheet">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div>
+            <div style={{fontWeight:900,fontSize:17,color:C.brown}}>📅 Chọn ngày bắt đầu</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:2}}>Thực đơn sẽ được lưu vào lịch {numDays} ngày kể từ ngày bạn chọn</div>
+          </div>
+          <button onClick={onClose} style={{background:"#F5F0EA",border:"none",borderRadius:12,width:36,height:36,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",color:C.muted}}>×</button>
+        </div>
+
+        {/* Month nav */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <button onClick={prevMonth} style={{background:C.greenLt,border:"none",borderRadius:12,width:36,height:36,cursor:"pointer",fontSize:18,color:C.greenDk,display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+          <div style={{fontWeight:900,fontSize:15,color:C.brown}}>{MONTHS_VI[month]} {year}</div>
+          <button onClick={nextMonth} style={{background:C.greenLt,border:"none",borderRadius:12,width:36,height:36,cursor:"pointer",fontSize:18,color:C.greenDk,display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
+        </div>
+
+        {/* Weekday headers */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+          {WEEKDAYS.map(w=>(
+            <div key={w} style={{textAlign:"center",fontSize:10,fontWeight:800,color:C.muted,padding:"2px 0"}}>{w}</div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:16}}>
+          {cells.map((d,i)=>{
+            if(!d) return <div key={`e${i}`}/>;
+            const dk = dateKey(year,month,d);
+            const isToday = dk===tk;
+            const isSel = dk===selected;
+            return (
+              <button key={dk} onClick={()=>setSelected(isSel?null:dk)}
+                style={{
+                  background: isSel?C.green : isToday?C.greenLt : "transparent",
+                  border: isToday&&!isSel ? `2px solid ${C.green}` : "2px solid transparent",
+                  borderRadius:10, padding:"8px 2px", cursor:"pointer",
+                  display:"flex",flexDirection:"column",alignItems:"center",
+                  fontFamily:"inherit"
+                }}>
+                <span style={{fontSize:13,fontWeight:isToday||isSel?900:600,color:isSel?"white":isToday?C.greenDk:C.brown}}>{d}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {selected && (
+          <div style={{background:C.greenLt,borderRadius:14,padding:"10px 14px",marginBottom:14,border:`2px solid ${C.green}`,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:18}}>✅</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:800,color:C.greenDk}}>Ngày bắt đầu: {fmtLabel(selected)}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:1}}>Thực đơn sẽ phủ {numDays} ngày: {fmtLabel(selected)} → {(()=>{const [y,m,d]=selected.split("-").map(Number);const end=new Date(y,m-1,d+numDays-1);return `${end.getDate()} ${MONTHS_VI[end.getMonth()]}, ${end.getFullYear()}`;})()}</div>
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={onClose} style={{flex:1,background:"#F5F0EA",border:"none",borderRadius:14,padding:"13px",fontFamily:"inherit",fontWeight:700,fontSize:14,color:C.muted,cursor:"pointer"}}>Hủy</button>
+          <button onClick={()=>selected&&onConfirm(selected)} disabled={!selected}
+            style={{flex:2,background:selected?`linear-gradient(135deg,${C.green},${C.greenDk})`:"#B0C4B8",color:"white",border:"none",borderRadius:14,padding:"13px",fontFamily:"inherit",fontWeight:800,fontSize:14,cursor:selected?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            ✨ Tạo thực đơn ngay
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Menu Tab ────────────────────────────────────────────────────────────────
-function MenuTab({plan,loading,numDays,setNumDays,generatePlan,history,geminiKey,setGeminiKey,showKey,setShowKey,dishes,cookedDishes,onReplaceDish,onDishClick,favoriteDishes,ingredients,onAddDish,onRemoveDish}) {
+function MenuTab({plan,loading,numDays,setNumDays,generatePlan,checkDishesAndGenerate,history,geminiKey,setGeminiKey,showKey,setShowKey,dishes,cookedDishes,onReplaceDish,onDishClick,favoriteDishes,ingredients,onAddDish,onRemoveDish}) {
   const [showShop,setShowShop] = useState(false);
   const [checkedItems,setCheckedItems] = useState({});
   const [onlyFavs,setOnlyFavs] = useState(false);
   const [onlyAvailIng,setOnlyAvailIng] = useState(false);
   const [sameMeal,setSameMeal] = useState(false);
+  const [showDatePicker,setShowDatePicker] = useState(false);
+  const [pendingOpts,setPendingOpts] = useState(null); // {onlyFavs,onlyAvailIng,sameMeal}
   const toggleCheck=(cat,item)=>{const k=`${cat}__${item}`;setCheckedItems(p=>({...p,[k]:!p[k]}));};
   const favCount = favoriteDishes.length;
   const availIngCount = ingredients ? ingredients.filter(i=>i.available).length : 0;
+
+  const handleRequestGenerate = ()=>{
+    setPendingOpts({onlyFavs,onlyAvailIng,sameMeal});
+    setShowDatePicker(true);
+  };
+
+  const handleConfirmDate = (startDateKey)=>{
+    setShowDatePicker(false);
+    if(pendingOpts) checkDishesAndGenerate(pendingOpts.onlyFavs, pendingOpts.onlyAvailIng, pendingOpts.sameMeal, startDateKey);
+  };
 
   return (
     <div>
@@ -828,7 +951,7 @@ function MenuTab({plan,loading,numDays,setNumDays,generatePlan,history,geminiKey
           </div>
         </div>
 
-        <button onClick={()=>generatePlan(onlyFavs, onlyAvailIng, sameMeal)} disabled={loading}
+        <button onClick={handleRequestGenerate} disabled={loading}
           style={{width:"100%",background:loading?"#B0C4B8":onlyFavs?`linear-gradient(135deg,#F59E0B,#D97706)`:`linear-gradient(135deg,${C.green},${C.greenDk})`,color:"white",border:"none",borderRadius:16,padding:"14px",fontFamily:"inherit",fontWeight:800,fontSize:15,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"background 0.2s"}}>
           {loading
             ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⏳</span> Đang lên thực đơn...</>
@@ -898,6 +1021,14 @@ function MenuTab({plan,loading,numDays,setNumDays,generatePlan,history,geminiKey
             Vào tab <b style={{color:C.green}}>Nguyên liệu</b> tích chọn những gì bạn mua được → quay lại đây → nhấn Tạo thực đơn 💚
           </div>
         </div>
+      )}
+
+      {showDatePicker&&(
+        <DatePickerModal
+          numDays={numDays}
+          onConfirm={handleConfirmDate}
+          onClose={()=>setShowDatePicker(false)}
+        />
       )}
     </div>
   );
@@ -1302,6 +1433,11 @@ function CalendarTab({diary, dishes, onSave, onDelete, apiKey}) {
           </div>
           {diary[selected] ? (
             <div>
+              {diary[selected].fromMenu&&(
+                <div style={{background:"#EAF5EF",borderRadius:10,padding:"5px 10px",marginBottom:8,fontSize:11,color:C.greenDk,fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
+                  📋 Thực đơn AI đã lên cho ngày này
+                </div>
+              )}
               <MealLine icon="🌅" val={diary[selected].breakfast}/>
               <MealLine icon="☀️" val={diary[selected].lunch}/>
               <MealLine icon="🌙" val={diary[selected].dinner}/>
@@ -1511,12 +1647,15 @@ function IngredientsTab({ingredients,allIng,catFilter,setCatFilter,toggleIng,mar
           </button>
         </div>
 
-        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4}}>
-          {cats.map(c=>(
-            <button key={c} onClick={()=>setCatFilter(c)} style={{flexShrink:0,background:catFilter===c?C.green:"#F5F0EA",color:catFilter===c?"white":C.muted,border:"none",borderRadius:20,padding:"6px 13px",fontFamily:"inherit",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
-              {c==="Tất cả"?"Tất cả":`${CAT_ICONS[c]} ${c}`}
-            </button>
-          ))}
+        <div style={{position:"relative"}}>
+          <div className="cat-scroll" style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,scrollbarWidth:"thin"}}>
+            {cats.map(c=>(
+              <button key={c} onClick={()=>setCatFilter(c)} style={{flexShrink:0,background:catFilter===c?C.green:"#F5F0EA",color:catFilter===c?"white":C.muted,border:"none",borderRadius:20,padding:"6px 13px",fontFamily:"inherit",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+                {c==="Tất cả"?"Tất cả":`${CAT_ICONS[c]} ${c}`}
+              </button>
+            ))}
+          </div>
+          <div style={{position:"absolute",right:0,top:0,bottom:4,width:28,background:"linear-gradient(to left, white, transparent)",pointerEvents:"none",borderRadius:"0 8px 8px 0"}}/>
         </div>
       </div>
 
@@ -1576,20 +1715,28 @@ function DishesTab({dishes,cookedDishes,removeDish,onDishClick,onToggleCooked,on
 
   const generateAIDishes = async()=>{
     if(!apiKey||!apiKey.trim()){alert("Cần nhập Groq API Key ở tab Thực đơn trước nhé!");return;}
+    // Chỉ dùng nguyên liệu đã được tích chọn (available)
+    const availIng = (ingredients||[]).filter(i=>i.available);
+    if(availIng.length===0){
+      alert("Chưa có nguyên liệu nào được tích ✓!\n\nVào tab Nguyên liệu tích chọn những gì bạn mua được trước nhé.");
+      return;
+    }
     setAiLoading(true); setAiResult(null);
     try {
-      const allIng = (ingredients||[]).map(i=>i.name).join(", ");
+      const ingByCategory = {};
+      availIng.forEach(i=>{ if(!ingByCategory[i.category]) ingByCategory[i.category]=[]; ingByCategory[i.category].push(i.name); });
+      const ingText = Object.entries(ingByCategory).map(([cat,items])=>`${cat}: ${items.join(", ")}`).join("\n");
       const existingDishes = dishes.join(", ");
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions",{
         method:"POST",
         headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey.trim()},
         body:JSON.stringify({
           model:"llama-3.3-70b-versatile",
-          max_tokens:800,
+          max_tokens:900,
           temperature:0.85,
           messages:[
             {role:"system",content:"Bạn là chuyên gia dinh dưỡng cho mẹ bầu 3 tháng đầu. Chỉ trả về JSON hợp lệ, không markdown, không backtick, không giải thích thêm."},
-            {role:"user",content:`Tôi có các nguyên liệu sau: ${allIng}.\n\nCác món ăn đã có (KHÔNG được trùng): ${existingDishes}.\n\nHãy gợi ý thêm 12 món ăn mới, đa dạng (bao gồm cả món mặn, canh, cháo, hạt/đậu), phù hợp cho mẹ bầu 3 tháng đầu, tận dụng các nguyên liệu trên.\nTrả về JSON: {"mon_an":["tên món 1","tên món 2",...]} (đúng 12 món, mỗi tên ngắn gọn dưới 40 ký tự)`}
+            {role:"user",content:`Nguyên liệu tôi đang CÓ SẴN (chỉ dùng những nguyên liệu này, không thêm nguyên liệu ngoài danh sách):\n${ingText}\n\nCác món ăn đã có (KHÔNG được trùng): ${existingDishes||"Chưa có"}\n\nHãy gợi ý 12 món ăn đa dạng (món mặn, canh, cháo, hạt/đậu, rau) phù hợp cho mẹ bầu 3 tháng đầu. BẮT BUỘC chỉ dùng nguyên liệu trong danh sách trên.\nTrả về JSON: {"mon_an":["tên món 1","tên món 2",...]} (đúng 12 món, mỗi tên ngắn gọn dưới 40 ký tự)`}
           ]
         })
       });
@@ -1638,6 +1785,9 @@ function DishesTab({dishes,cookedDishes,removeDish,onDishClick,onToggleCooked,on
           </div>
         </div>
 
+        <div style={{background:"#EAF5EF",borderRadius:12,padding:"9px 12px",marginBottom:10,fontSize:12,color:C.greenDk,fontWeight:600,lineHeight:1.5,border:`1px solid ${C.green}`}}>
+          📋 Khi tạo thực đơn, AI sẽ <b>chỉ chọn từ kho món này</b>. Thêm càng nhiều món, thực đơn càng đa dạng.
+        </div>
         {cookedCount>0&&(
           <div style={{background:"#FFF8F0",borderRadius:12,padding:"8px 12px",marginBottom:10,fontSize:12,color:"#C06030",fontWeight:600,lineHeight:1.5}}>
             🔁 Những món có nhãn <b>"Đã nấu"</b> sẽ được AI ưu tiên tránh lặp lại khi tạo thực đơn mới.
@@ -1670,7 +1820,9 @@ function DishesTab({dishes,cookedDishes,removeDish,onDishClick,onToggleCooked,on
           </button>
           <button onClick={generateAIDishes} disabled={aiLoading}
             style={{flex:1,background:aiLoading?"#B0C4B8":"linear-gradient(135deg,#7B6BAD,#5B4E8D)",color:"white",border:"none",borderRadius:12,padding:"10px",fontFamily:"inherit",fontWeight:700,fontSize:13,cursor:aiLoading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all 0.2s"}}>
-            {aiLoading?<><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⏳</span> Đang tạo...</>:<>✨ AI gợi thêm món</>}
+            {aiLoading
+              ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⏳</span> Đang tạo...</>
+              :<>✨ AI gợi thêm ({(ingredients||[]).filter(i=>i.available).length} NL)</>}
           </button>
         </div>
 
@@ -1896,6 +2048,16 @@ function App() {
   const [selectedDish, setSelectedDish] = useState(null);
   const [dishRecipes, setDishRecipes] = useState({});
   const [diary, setDiary] = useState({});
+  const [dishWarning, setDishWarning] = useState(null); // {missing:[], onlyFavs, onlyAvailIng, sameMeal, startDateKey}
+  const [stage, setStage] = useState("3thangdau"); // stage selector
+  const [showStageMenu, setShowStageMenu] = useState(false);
+
+  const STAGES = [
+    {id:"3thangdau", label:"3 tháng đầu thai kỳ", icon:"🤰"},
+    {id:"sau3thang", label:"Sau 3 tháng đầu thai kỳ", icon:"🫄"},
+    {id:"moisinhbé", label:"Mới sinh em bé", icon:"👶"},
+    {id:"giađình", label:"Cả gia đình", icon:"👨‍👩‍👧‍👦"},
+  ];
 
   useEffect(()=>{
     // Migrate from v2 if v3 doesn't exist
@@ -1907,10 +2069,16 @@ function App() {
     if(i3) setIngredients(i3);
     else if(i2) setIngredients(i2); // migrate from old version
 
+    // Danh sách món mặc định cũ (để lọc ra, chỉ giữ món user tự thêm)
+    const LEGACY_DEFAULT = new Set(["Thịt heo kho tiêu","Thịt heo luộc","Thịt heo xào gừng hành","Thịt bò xào cà rốt súp lơ","Thịt bò hầm rau củ","Thịt bò lúc lắc","Gà hấp gừng hành","Gà rang sả","Gà kho gừng","Gà hầm tiêu xanh","Vịt nấu chao","Vịt luộc mắm gừng","Chim bồ câu hầm hạt sen","Chim cút kho","Trứng chiên cà chua","Trứng gà luộc","Trứng cút kho","Trứng hấp thịt băm","Cá hồi áp chảo","Cá hồi sốt cà chua","Cá hồi hấp gừng","Cá nục kho gừng","Cá nục chiên","Cá trích kho","Cá thác lát chiên","Cá chim trắng kho","Cá liệt kho","Tôm luộc","Tôm xào tỏi","Tôm rang muối","Tôm hấp bia","Đậu khuôn chiên sốt cà chua","Đậu khuôn hấp hành gừng","Rau muống xào tỏi","Cải ngọt xào tỏi","Súp lơ xanh luộc","Bầu luộc","Cải thìa xào gừng","Đậu bắp luộc","Măng tây xào tỏi","Cải bó xôi xào tỏi","Khoai lang luộc","Canh rau cải bó xôi thịt băm","Canh bí đỏ tôm","Canh bí đao xương heo","Canh cải thảo tôm","Canh cải ngọt thịt băm","Canh đậu đũa thịt","Canh khoai tây thịt bò","Canh xương bò rau củ","Canh cà rốt thịt băm","Canh rau ngót thịt băm","Canh chua cá","Canh chua tôm","Súp bí đỏ gà","Súp gà rau củ","Bí đỏ hầm xương bò","Canh đậu hũ cải thảo","Canh hành tây thịt bò","Sữa đậu xanh","Sữa đậu nành","Sữa hạt óc chó","Chè đậu đen","Chè đậu đỏ","Chè đậu xanh đường phèn","Hạt điều rang muối","Hạt hướng dương rang","Cháo gà rau củ","Cháo đậu xanh","Cháo trứng rau","Cháo cá hồi"]);
     const d3=db.load("mebau_dishes_v3");
     const d2=db.load("mebau_dishes_v2");
-    if(d3) setDishes(d3);
-    else if(d2) setDishes(d2);
+    const rawDishes = d3||d2||[];
+    const userOnlyDishes = rawDishes.filter(d=>!LEGACY_DEFAULT.has(d));
+    setDishes(userOnlyDishes);
+    if(userOnlyDishes.length !== rawDishes.length) {
+      db.save("mebau_dishes_v3", userOnlyDishes);
+    }
 
     const p=db.load("mebau_plan_v3"); if(p)setPlan(p);
     const h=db.load("mebau_hist_v3"); if(h)setHistory(h);
@@ -1922,6 +2090,16 @@ function App() {
   },[]);
 
   const saveKey=(v)=>{ setGroqKey(v); db.save("mebau_gkey",v); };
+
+  // Close stage menu when clicking outside
+  useEffect(()=>{
+    if(!showStageMenu) return;
+    const handler=(e)=>{
+      if(!e.target.closest("[data-stage-menu]")) setShowStageMenu(false);
+    };
+    document.addEventListener("mousedown",handler);
+    return()=>document.removeEventListener("mousedown",handler);
+  },[showStageMenu]);
 
   const updateIng=(upd)=>{
     setIngredients(upd);
@@ -2027,7 +2205,41 @@ function App() {
     }
   };
 
-  const generatePlan = async(onlyFavs=false, onlyAvailIng=false, sameMeal=false)=>{
+  // ── Kiểm tra kho món ăn trước khi tạo thực đơn ──────────────────────────────
+  const checkDishesAndGenerate = (onlyFavs=false, onlyAvailIng=false, sameMeal=false, startDateKey=null)=>{
+    const activeDishes = onlyFavs ? favoriteDishes : dishes;
+    const MIN_DISHES = 8; // Cần ít nhất 8 món để lên thực đơn đa dạng
+
+    // Phân tích đa dạng: tối thiểu 3 loại (mặn, canh/rau, hạt/tráng miệng)
+    const hasSavory = activeDishes.some(d=>{
+      const dl=d.toLowerCase();
+      return dl.includes("kho")||dl.includes("chiên")||dl.includes("xào")||dl.includes("luộc")||dl.includes("hấp")||dl.includes("hầm")||dl.includes("áp chảo")||dl.includes("rang");
+    });
+    const hasSoup = activeDishes.some(d=>d.toLowerCase().includes("canh")||d.toLowerCase().includes("súp")||d.toLowerCase().includes("cháo"));
+    const hasNut = activeDishes.some(d=>{
+      const dl=d.toLowerCase();
+      return dl.includes("hạt")||dl.includes("đậu")||dl.includes("sữa")||dl.includes("chè");
+    });
+    const hasFruit = activeDishes.some(d=>{
+      const dl=d.toLowerCase();
+      return dl.includes("cam")||dl.includes("chuối")||dl.includes("táo")||dl.includes("nho")||dl.includes("kiwi")||dl.includes("dâu")||dl.includes("lựu")||dl.includes("bơ")||dl.includes("trái cây")||dl.includes("lê")||dl.includes("ổi")||dl.includes("thanh long")||dl.includes("dưa");
+    });
+
+    const missing = [];
+    if(activeDishes.length < MIN_DISHES) missing.push(`chưa đủ số lượng (${activeDishes.length}/${MIN_DISHES} món)`);
+    if(!hasSavory) missing.push("thiếu món mặn (kho/chiên/xào/luộc)");
+    if(!hasSoup) missing.push("thiếu canh/súp/cháo");
+    if(!hasNut) missing.push("thiếu hạt/đậu/sữa hạt");
+    if(!hasFruit) missing.push("thiếu trái cây");
+
+    if(missing.length > 0) {
+      setDishWarning({missing, onlyFavs, onlyAvailIng, sameMeal, startDateKey});
+    } else {
+      generatePlan(onlyFavs, onlyAvailIng, sameMeal, startDateKey);
+    }
+  };
+
+  const generatePlan = async(onlyFavs=false, onlyAvailIng=false, sameMeal=false, startDateKey=null)=>{
     if(!groqKey.trim()){
       alert("Vui lòng nhập Groq API Key trước!\n\nLấy miễn phí tại: console.groq.com/keys");
       return;
@@ -2083,7 +2295,7 @@ QUY TẮC TỪNG NGÀY (BẮT BUỘC):
 - ĐÚNG 1 trong 3 bữa phải có thêm MÓN HẠT/ĐẬU: sữa đậu xanh, sữa đậu nành, chè đậu đen, chè đậu đỏ, hạt điều rang, sữa hạt óc chó... (các bữa còn lại không có)
 - Đa dạng protein mỗi ngày: không lặp cùng loại (cá/thịt/trứng/đậu xen kẽ)
 - Bữa sáng có thể nhẹ hơn (2-3 món), bữa trưa/tối đầy đủ hơn (3-4 món)
-- Chọn từ danh sách sau (ưu tiên): ${(onlyFavs ? favoriteDishes : dishes).join(", ")}
+- BẮT BUỘC: Chỉ chọn món từ danh sách kho món ăn sau đây (KHÔNG ĐƯỢC tự đặt tên món ngoài danh sách này): ${(onlyFavs ? favoriteDishes : dishes).join(", ")||"Chưa có món nào"}
 ${sameMeal?"- BẮT BUỘC: Bữa SÁNG phải có các món GIỐNG HỆT bữa TRƯA (cùng tên món, không thay đổi).\n":""}${onlyFavs ? "- BẮT BUỘC: chỉ dùng các món trong danh sách yêu thích trên, KHÔNG được dùng món ngoài danh sách này.\n" : ""}${onlyAvailIng ? "- BẮT BUỘC: chỉ tạo món từ các nguyên liệu có trong danh sách 'Nguyên liệu hiện có' ở trên, TUYỆT ĐỐI không dùng nguyên liệu ngoài danh sách đó.\n" : ""}
 
 CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
@@ -2107,7 +2319,7 @@ CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
       const text = data.choices?.[0]?.message?.content||"";
       const cleaned = text.replace(/```json|```/g,"").trim();
       const parsed = JSON.parse(cleaned);
-      const newPlan = {...parsed, generatedAt:new Date().toISOString(), numDays};
+      const newPlan = {...parsed, generatedAt:new Date().toISOString(), numDays, startDateKey};
       // Enforce breakfast = lunch on client side if sameMeal is on
       if(sameMeal && newPlan.days) {
         newPlan.days = newPlan.days.map(d=>({...d, breakfast: Array.isArray(d.lunch)?[...d.lunch]:[d.lunch].filter(Boolean)}));
@@ -2116,6 +2328,32 @@ CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
       setHistory(newHist); setPlan(newPlan);
       db.save("mebau_plan_v3", newPlan);
       db.save("mebau_hist_v3", newHist);
+
+      // ── Lưu thực đơn vào lịch (diary) theo ngày bắt đầu ──────────────────
+      if(startDateKey && newPlan.days) {
+        const [sy,sm,sd] = startDateKey.split("-").map(Number);
+        const startDate = new Date(sy, sm-1, sd);
+        const newDiary = {...diary};
+        newPlan.days.forEach((dayObj, idx)=>{
+          const dt = new Date(startDate);
+          dt.setDate(startDate.getDate() + idx);
+          const dk = dateKey(dt.getFullYear(), dt.getMonth(), dt.getDate());
+          const flatten = v=>Array.isArray(v)?v:(v?[v]:[]);
+          const bf = flatten(dayObj.breakfast).filter(d=>d&&d!=="Cơm trắng").join(", ");
+          const lu = flatten(dayObj.lunch).join(", ");
+          const di_ = flatten(dayObj.dinner).join(", ");
+          newDiary[dk] = {
+            breakfast: bf,
+            lunch: lu,
+            dinner: di_,
+            note: dayObj.note||"",
+            fromMenu: true
+          };
+        });
+        setDiary(newDiary);
+        db.save("mebau_diary_v3", newDiary);
+      }
+
       setTab("menu");
     } catch(e){
       console.error(e);
@@ -2141,14 +2379,39 @@ CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
   return (
     <div style={{background:C.bg,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Nunito',sans-serif",paddingBottom:90}}>
       {/* Header */}
-      <div style={{background:`linear-gradient(160deg,${C.green} 0%,${C.greenDk} 100%)`,padding:"24px 20px 58px",borderRadius:"0 0 36px 36px"}}>
+      <div style={{background:`linear-gradient(160deg,${C.green} 0%,${C.greenDk} 100%)`,padding:"24px 20px 58px",borderRadius:"0 0 36px 36px",position:"relative"}}>
         <div style={{color:"rgba(255,255,255,0.75)",fontSize:11,fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>
-          🤰 Thực đơn mẹ bầu
+          🌿 Thực đơn gia đình
         </div>
-        <div style={{color:"white",fontSize:26,fontWeight:900,lineHeight:1.2}}>3 tháng đầu thai kỳ</div>
+        {/* Clickable stage selector */}
+        <div style={{position:"relative"}} data-stage-menu="1">
+          <button
+            onClick={()=>setShowStageMenu(v=>!v)}
+            style={{background:"none",border:"none",padding:0,cursor:"pointer",textAlign:"left",width:"100%",fontFamily:"'Nunito',sans-serif"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{color:"white",fontSize:24,fontWeight:900,lineHeight:1.2}}>
+                {STAGES.find(s=>s.id===stage)?.label||"3 tháng đầu thai kỳ"}
+              </div>
+              <div style={{color:"rgba(255,255,255,0.7)",fontSize:14,marginTop:2}}>▼</div>
+            </div>
+          </button>
+          {showStageMenu&&(
+            <div style={{position:"absolute",top:"110%",left:0,background:"white",borderRadius:18,boxShadow:"0 8px 32px rgba(0,0,0,0.18)",zIndex:200,minWidth:260,overflow:"hidden",animation:"fadeIn 0.15s ease"}}>
+              {STAGES.map(s=>(
+                <button key={s.id} onClick={()=>{setStage(s.id);setShowStageMenu(false);}}
+                  style={{width:"100%",background:stage===s.id?C.greenLt:"white",border:"none",padding:"13px 18px",fontFamily:"'Nunito',sans-serif",fontSize:14,fontWeight:stage===s.id?800:600,color:stage===s.id?C.greenDk:C.brown,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left",borderBottom:`1px solid ${C.border}`,transition:"background 0.12s"}}>
+                  <span style={{fontSize:18}}>{s.icon}</span>
+                  {s.label}
+                  {stage===s.id&&<span style={{marginLeft:"auto",color:C.green,fontSize:16}}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div style={{color:"rgba(255,255,255,0.65)",fontSize:13,marginTop:5}}>
           {availCount}/{ingredients.length} nguyên liệu có sẵn · {dishes.length} món ăn
           {history.length>0&&<span> · {history.length} đợt thực đơn</span>}
+          {Object.keys(diary).length>0&&<span> · {Object.keys(diary).length} ngày trong lịch</span>}
         </div>
       </div>
 
@@ -2157,7 +2420,7 @@ CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
         {tab==="menu"&&(
           <MenuTab
             plan={plan} loading={loading} numDays={numDays} setNumDays={setNumDays}
-            generatePlan={generatePlan} history={history}
+            generatePlan={generatePlan} checkDishesAndGenerate={checkDishesAndGenerate} history={history}
             geminiKey={groqKey} setGeminiKey={saveKey} showKey={showKey} setShowKey={setShowKey}
             dishes={dishes} cookedDishes={cookedDishes} onReplaceDish={replaceDish}
             onDishClick={setSelectedDish}
@@ -2237,6 +2500,19 @@ CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
       {/* Dish Recipe Modal */}
       {selectedDish&&(
         <DishRecipeModal dishName={selectedDish} apiKey={groqKey} dishRecipes={dishRecipes} onSaveRecipe={saveDishRecipe} onClose={()=>setSelectedDish(null)}/>
+      )}
+
+      {/* Dish Warning Modal */}
+      {dishWarning&&(
+        <DishWarningModal
+          warning={dishWarning}
+          onGoAdd={()=>{ setDishWarning(null); setTab("dishes"); }}
+          onContinueAnyway={()=>{
+            const w=dishWarning; setDishWarning(null);
+            generatePlan(w.onlyFavs, w.onlyAvailIng, w.sameMeal, w.startDateKey);
+          }}
+          onClose={()=>setDishWarning(null)}
+        />
       )}
     </div>
   );
