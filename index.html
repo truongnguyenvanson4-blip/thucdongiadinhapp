@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>Cong Viec</title>
+<title>Cong viec 1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
@@ -2111,6 +2111,7 @@ function App() {
   const [dishWarning, setDishWarning] = useState(null); // {missing:[], onlyFavs, onlyAvailIng, sameMeal, startDateKey}
   const [stage, setStage] = useState("3thangdau"); // stage selector
   const [showStageMenu, setShowStageMenu] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | uploading | done | error
 
   const STAGES = [
     {id:"3thangdau", label:"3 tháng đầu thai kỳ", icon:"🤰"},
@@ -2161,6 +2162,25 @@ function App() {
   },[]);
 
   const saveKey=(v)=>{ setGroqKey(v); db.save("mebau_gkey",v); };
+
+  // ── Đẩy toàn bộ dữ liệu thiết bị này lên Firebase ──────────────────────────
+  const pushToCloud = async()=>{
+    setSyncStatus("uploading");
+    try {
+      const keys = Object.keys(localStorage).filter(k=>k.startsWith("mebau"));
+      if(keys.length===0){ alert("Thiết bị này chưa có dữ liệu gì để đẩy lên!"); setSyncStatus("idle"); return; }
+      const payload = {};
+      keys.forEach(k=>{ payload[k] = localStorage.getItem(k); });
+      await window._fs.collection("shared").doc("family").set(payload, {merge:true});
+      setSyncStatus("done");
+      setTimeout(()=>setSyncStatus("idle"), 3000);
+    } catch(e) {
+      console.error("pushToCloud error:", e);
+      setSyncStatus("error");
+      setTimeout(()=>setSyncStatus("idle"), 3000);
+      alert("Lỗi đẩy dữ liệu: "+e.message);
+    }
+  };
 
   // Close stage menu when clicking outside
   useEffect(()=>{
@@ -2484,9 +2504,30 @@ CHỈ trả về JSON hợp lệ (không markdown, không giải thích):
           {history.length>0&&<span> · {history.length} đợt thực đơn</span>}
           {Object.keys(diary).length>0&&<span> · {Object.keys(diary).length} ngày trong lịch</span>}
         </div>
-        <div style={{marginTop:6,display:"flex",alignItems:"center",gap:5}}>
-          <div style={{width:7,height:7,borderRadius:4,background:"#7DFFC2",boxShadow:"0 0 6px #7DFFC2"}}/>
-          <span style={{color:"rgba(255,255,255,0.6)",fontSize:10,fontWeight:700,letterSpacing:0.5}}>ĐỒNG BỘ ĐÁM MÂY · MỌI THIẾT BỊ</span>
+        <div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
+          <button
+            onClick={pushToCloud}
+            disabled={syncStatus==="uploading"}
+            style={{
+              background: syncStatus==="done"?"rgba(125,255,194,0.25)":syncStatus==="error"?"rgba(255,100,100,0.25)":"rgba(255,255,255,0.15)",
+              border: "1.5px solid rgba(255,255,255,0.3)",
+              borderRadius:20, padding:"5px 14px",
+              color:"white", fontSize:11, fontWeight:700,
+              cursor:syncStatus==="uploading"?"wait":"pointer",
+              fontFamily:"'Nunito',sans-serif",
+              display:"flex", alignItems:"center", gap:6,
+              transition:"all 0.2s"
+            }}>
+            {syncStatus==="uploading"&&<span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⏳</span>}
+            {syncStatus==="done"&&<span>✅</span>}
+            {syncStatus==="error"&&<span>❌</span>}
+            {syncStatus==="idle"&&<span>☁️</span>}
+            {syncStatus==="uploading"?"Đang đẩy lên...":syncStatus==="done"?"Đã đồng bộ!":syncStatus==="error"?"Lỗi!":"Đẩy dữ liệu lên đám mây"}
+          </button>
+          <div style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{width:6,height:6,borderRadius:3,background:"#7DFFC2",boxShadow:"0 0 5px #7DFFC2"}}/>
+            <span style={{color:"rgba(255,255,255,0.5)",fontSize:10,fontWeight:700}}>LIVE SYNC</span>
+          </div>
         </div>
       </div>
 
